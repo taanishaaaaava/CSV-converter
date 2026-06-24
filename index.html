@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creator List Converter</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f11;
+    color: #e8e8ec;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .app { width: 100%; max-width: 760px; }
+
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .subtitle { font-size: 13px; color: #555; margin-bottom: 28px; }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed #2a2a30;
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: #16161a;
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over { border-color: #7c3aed; background: #1a1625; }
+  .dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .dropzone-icon { font-size: 28px; margin-bottom: 8px; }
+  .dropzone-label { font-size: 14px; color: #aaa; }
+  .dropzone-label span { color: #8b5cf6; font-weight: 500; }
+  .dropzone-sub { font-size: 12px; color: #555; margin-top: 5px; }
+  .file-loaded { font-size: 13px; color: #a78bfa; font-weight: 500; margin-top: 8px; }
+
+  /* Section labels */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: #555; margin: 22px 0 10px;
+  }
+
+  /* Templates */
+  .templates { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .template-card {
+    border: 2px solid #2a2a30; border-radius: 10px; padding: 14px 16px;
+    cursor: pointer; background: #16161a;
+    transition: border-color .15s, background .15s; user-select: none;
+  }
+  .template-card:hover { border-color: #4a4a55; }
+  .template-card.selected { border-color: #7c3aed; background: #1a1228; }
+  .template-name { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+  .template-desc { font-size: 11px; color: #666; line-height: 1.4; }
+  .template-card.selected .template-desc { color: #9b72f0; }
+
+  /* Mapping */
+  .mapping-section { background: #16161a; border: 1px solid #2a2a30; border-radius: 10px; padding: 16px; margin-top: 18px; }
+  .mapping-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .mapping-row:last-child { margin-bottom: 0; }
+  .mapping-target { font-size: 12px; font-weight: 500; color: #bbb; width: 200px; flex-shrink: 0; }
+  .mapping-arrow { color: #444; font-size: 13px; }
+  .mapping-row select {
+    flex: 1; background: #0f0f11; border: 1px solid #2a2a30;
+    border-radius: 7px; color: #e8e8ec; font-size: 12px;
+    padding: 6px 10px; outline: none; cursor: pointer;
+  }
+  .mapping-row select:focus { border-color: #7c3aed; }
+
+  /* Stats */
+  .stats-bar {
+    display: flex; gap: 16px; background: #16161a;
+    border: 1px solid #2a2a30; border-radius: 10px;
+    padding: 12px 18px; margin-top: 16px;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-value { font-size: 20px; font-weight: 700; color: #fff; }
+  .stat-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: .05em; }
+  .stat-value.green { color: #34d399; }
+  .stat-value.red   { color: #f87171; }
+  .stat-divider { width: 1px; background: #2a2a30; margin: 0 4px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 22px; border-radius: 9px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: opacity .15s, transform .1s;
+    margin-top: 18px; width: 100%; justify-content: center;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary  { background: #7c3aed; color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-primary:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+  .btn-download { background: #16a34a; color: #fff; }
+  .btn-download:hover { background: #15803d; }
+  .btn-sm {
+    padding: 6px 14px; font-size: 12px; border-radius: 7px;
+    width: auto; margin-top: 0; cursor: pointer; border: none; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-orange { background: #ea580c; color: #fff; }
+  .btn-orange:hover { background: #c2410c; }
+  .btn-slate  { background: #334155; color: #cbd5e1; }
+  .btn-slate:hover { background: #475569; }
+
+  /* Preview table */
+  .preview-wrap { margin-top: 18px; border: 1px solid #2a2a30; border-radius: 10px; overflow: hidden; }
+  .preview-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #1a1a1e;
+    border-bottom: 1px solid #2a2a30; font-size: 12px; color: #777;
+    gap: 10px;
+  }
+  .preview-header strong { color: #ccc; }
+  .preview-actions { display: flex; gap: 8px; }
+
+  .table-scroll { overflow-x: auto; max-height: 300px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    background: #1a1a1e; color: #666; font-weight: 600;
+    padding: 8px 10px; text-align: left; white-space: nowrap;
+    position: sticky; top: 0; border-bottom: 1px solid #2a2a30; z-index: 1;
+  }
+  tbody td {
+    padding: 6px 10px; border-bottom: 1px solid #1e1e22;
+    color: #ccc; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  tbody td[contenteditable="true"] {
+    outline: none; cursor: text; white-space: nowrap;
+  }
+  tbody td[contenteditable="true"]:focus {
+    background: #1e1630; box-shadow: inset 0 0 0 1px #7c3aed;
+    color: #e8e8ec; white-space: normal;
+  }
+  tbody tr:hover td { background: #19191f; }
+  tbody tr.highlighted td { background: #2d1a00 !important; }
+  tbody tr.strikethrough td { opacity: .35; text-decoration: line-through; }
+  tbody td.delete-cell { width: 30px; text-align: center; cursor: pointer; color: #4a1010; font-size: 14px; padding: 6px 8px; }
+  tbody td.delete-cell:hover { color: #f87171; background: #2d1111 !important; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Error Fixer ─────────────────────────────────────────────────── */
+  .fixer-panel {
+    margin-top: 20px;
+    border: 1px solid #3a2500;
+    border-radius: 10px;
+    background: #17120a;
+    overflow: hidden;
+  }
+  .fixer-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: #1f1608;
+    border-bottom: 1px solid #3a2500;
+  }
+  .fixer-title { font-size: 13px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 7px; }
+  .fixer-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .fixer-label { font-size: 11px; font-weight: 600; color: #7a6030; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
+
+  textarea.fixer-input {
+    width: 100%; background: #0f0c06; border: 1px solid #3a2500;
+    border-radius: 8px; color: #d4a855; font-size: 12px; padding: 10px 12px;
+    resize: vertical; min-height: 70px; outline: none; font-family: monospace;
+    line-height: 1.5;
+  }
+  textarea.fixer-input:focus { border-color: #92660a; }
+  textarea.fixer-input::placeholder { color: #4a3a1a; }
+
+  .fix-command-row { display: flex; gap: 8px; align-items: flex-start; }
+  input.fix-cmd {
+    flex: 1; background: #0f0c06; border: 1px solid #3a2500;
+    border-radius: 8px; color: #e8e8ec; font-size: 13px;
+    padding: 9px 12px; outline: none;
+  }
+  input.fix-cmd:focus { border-color: #92660a; }
+  input.fix-cmd::placeholder { color: #4a3a1a; font-size: 12px; }
+
+  .fix-hint {
+    font-size: 11px; color: #5a4a25; line-height: 1.6; margin-top: 4px;
+  }
+  .fix-hint code { color: #b07a20; background: #1f1608; padding: 1px 4px; border-radius: 3px; }
+
+  .fix-log {
+    background: #0f0c06; border: 1px solid #2a2000; border-radius: 7px;
+    padding: 8px 12px; font-size: 11px; color: #a07030; font-family: monospace;
+    max-height: 80px; overflow-y: auto; line-height: 1.7;
+  }
+
+  /* Notices */
+  .notice { padding: 9px 13px; border-radius: 8px; font-size: 12px; margin-top: 12px; }
+  .notice.error { background: #2d1111; border: 1px solid #7f1d1d; color: #f87171; }
+  .notice.info  { background: #0f1e2d; border: 1px solid #1d4ed8; color: #93c5fd; }
+  .notice.warn  { background: #2d1e00; border: 1px solid #92400e; color: #fbbf24; }
+
+  .hidden { display: none !important; }
+  .row-count-badge {
+    background: #2a2a30; border-radius: 99px; font-size: 11px;
+    padding: 2px 8px; color: #777; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Creator List Converter</h1>
+  <p class="subtitle">Upload a raw CSV → pick a template → fix errors → download</p>
+
+  <!-- ── Drop zone ── -->
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept=".csv" />
+    <div class="dropzone-icon">📂</div>
+    <div class="dropzone-label">Drop your CSV here or <span>browse</span></div>
+    <div class="dropzone-sub">Only .csv files accepted</div>
+    <div class="file-loaded hidden" id="fileLoaded"></div>
+  </div>
+
+  <!-- ── Template picker ── -->
+  <div class="section-label">Choose output template</div>
+  <div class="templates">
+    <div class="template-card" data-template="sequencing">
+      <div class="template-name">Sequencing</div>
+      <div class="template-desc">Name · Email · TikTok URL</div>
+    </div>
+    <div class="template-card" data-template="wix">
+      <div class="template-name">Wix</div>
+      <div class="template-desc">First name · Email</div>
+    </div>
+    <div class="template-card" data-template="euka">
+      <div class="template-name">Euka</div>
+      <div class="template-desc">Handles only</div>
+    </div>
+  </div>
+
+  <!-- ── Column mapping ── -->
+  <div class="mapping-section hidden" id="mappingSection">
+    <div class="section-label" style="margin-top:0;margin-bottom:12px;">Map your columns</div>
+    <div id="mappingRows"></div>
+  </div>
+
+  <!-- ── Stats ── -->
+  <div class="stats-bar hidden" id="statsBar">
+    <div class="stat"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total rows</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value green" id="statKept">—</div><div class="stat-label">With email</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value red" id="statDropped">—</div><div class="stat-label">No email removed</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-value red" id="statFixed">—</div><div class="stat-label">Manually removed</div></div>
+  </div>
+
+  <div class="notice error hidden" id="errorBox"></div>
+
+  <!-- ── Convert ── -->
+  <button class="btn btn-primary" id="convertBtn" disabled>Convert &amp; Preview →</button>
+
+  <!-- ── Preview ── -->
+  <div class="preview-wrap hidden" id="previewWrap">
+    <div class="preview-header">
+      <span><strong id="previewCount">0</strong> rows ready &nbsp;<span class="row-count-badge" id="removedBadge" style="display:none"></span></span>
+      <div class="preview-actions">
+        <button class="btn-sm btn-slate" id="showAllBtn">Show all rows</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="previewTable"></table>
+    </div>
+  </div>
+
+  <!-- ── Download ── -->
+  <button class="btn btn-download hidden" id="downloadBtn">⬇ Download CSV</button>
+
+  <!-- ════════════════════════════════════════════════
+       ERROR FIXER PANEL
+  ════════════════════════════════════════════════ -->
+  <div class="fixer-panel hidden" id="fixerPanel">
+    <div class="fixer-header">
+      <div class="fixer-title">⚠️ Platform Error Fixer</div>
+      <button class="btn-sm btn-slate" id="fixerToggle" onclick="toggleFixer()">Hide</button>
+    </div>
+    <div class="fixer-body" id="fixerBody">
+
+      <div>
+        <div class="fixer-label">Paste platform error message</div>
+        <textarea class="fixer-input" id="errorPaste" placeholder="e.g.  Creator @username already exists&#10;      Invalid email: badformat&#10;      Row 5: handle not found"></textarea>
+        <div class="fix-hint" style="margin-top:6px;">
+          Handles, emails, and row numbers in the error will be <strong style="color:#b07a20">highlighted</strong> in the table above automatically.
+        </div>
+      </div>
+
+      <div>
+        <div class="fixer-label">Fix command</div>
+        <div class="fix-command-row">
+          <input class="fix-cmd" id="fixCmd" type="text"
+            placeholder="Type a command and press Enter…" />
+          <button class="btn-sm btn-orange" id="applyFixBtn">Apply</button>
+        </div>
+        <div class="fix-hint" style="margin-top:6px;">
+          Examples:&nbsp;
+          <code>remove @handle</code> &nbsp;·&nbsp;
+          <code>remove row 3</code> &nbsp;·&nbsp;
+          <code>remove all highlighted</code> &nbsp;·&nbsp;
+          <code>set email for @handle to new@email.com</code> &nbsp;·&nbsp;
+          <code>undo</code>
+        </div>
+      </div>
+
+      <div class="fix-log hidden" id="fixLog"></div>
+
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let rawHeaders = [];
+let rawRows    = [];
+let selectedTemplate = null;
+let outputRows = [];
+let manuallyRemoved = 0;
+let undoStack = [];
+let showingAll = false;
+
+// ════════════════════════════════════════════════════════════
+// TEMPLATES
+// ════════════════════════════════════════════════════════════
+const TEMPLATES = {
+  sequencing: {
+    fields: [
+      { key:'handle', label:'Creator handle / Name', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+      { key:'tiktok', label:'TikTok URL', required:false,
+        guesses:['tiktok link','tiktok url','tiktok','tiktok profile','profile url','url','profile link'] },
+    ],
+    build: mapped => {
+      const h = ['Name','Email','Instagram Link','YouTube Link','Tiktok Link',
+                 'Twitter Link','Facebook Link','Street Address 1','Street Address 2',
+                 'City','State','Zip','Country','Existing Discount Code?','Commission %'];
+      return [h, ...mapped.map(r => [r.handle, r.email, '','', r.tiktok||'','','','','','','','','','',''])];
+    }
+  },
+  wix: {
+    fields: [
+      { key:'handle', label:'Creator handle', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+    ],
+    build: mapped => [['First name','Last name','email'], ...mapped.map(r => [r.handle, '', r.email])]
+  },
+  euka: {
+    fields: [
+      { key:'handle', label:'Creator handle', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email (filter only — not in output)', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+    ],
+    build: mapped => [['handles'], ...mapped.map(r => [r.handle])]
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+// CSV PARSER
+// ════════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = [];
+  let cur = '', inQ = false;
+  const flush = () => { lines.push(cur); cur = ''; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { cur += '\x00'; }
+    else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      flush();
+    } else cur += c;
+  }
+  if (cur) flush();
+  return lines.map(l => l.split('\x00').map(v => v.trim().replace(/^"|"$/g,'').replace(/""/g,'"')));
+}
+
+function rowsToCSV(rows) {
+  return rows.map(r => r.map(cell => {
+    const s = String(cell ?? '');
+    return (s.includes(',') || s.includes('"') || s.includes('\n'))
+      ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(',')).join('\r\n');
+}
+
+// ════════════════════════════════════════════════════════════
+// COLUMN AUTO-DETECT
+// ════════════════════════════════════════════════════════════
+function autoDetect(headers, guesses) {
+  const norm = h => h.toLowerCase().replace(/[^a-z0-9]/g,' ').trim();
+  for (const g of guesses) {
+    const i = headers.findIndex(h => norm(h) === g);
+    if (i !== -1) return headers[i];
+  }
+  for (const g of guesses) {
+    const i = headers.findIndex(h => norm(h).includes(g) || g.includes(norm(h)));
+    if (i !== -1) return headers[i];
+  }
+  return '';
+}
+
+// ════════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════════
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function clearError() { document.getElementById('errorBox').classList.add('hidden'); }
+
+function getMappedSelects() {
+  return [...document.querySelectorAll('#mappingRows select')];
+}
+
+function updateConvertBtn() {
+  if (!selectedTemplate || rawHeaders.length === 0) {
+    document.getElementById('convertBtn').disabled = true; return;
+  }
+  const tpl = TEMPLATES[selectedTemplate];
+  const selects = getMappedSelects();
+  const ok = tpl.fields.filter(f => f.required).every(f => {
+    const s = selects.find(x => x.dataset.field === f.key);
+    return s && s.value;
+  });
+  document.getElementById('convertBtn').disabled = !ok;
+}
+
+function buildMappingUI() {
+  if (!selectedTemplate || rawHeaders.length === 0) return;
+  const tpl = TEMPLATES[selectedTemplate];
+  const section = document.getElementById('mappingSection');
+  const container = document.getElementById('mappingRows');
+  container.innerHTML = '';
+
+  tpl.fields.forEach(field => {
+    const auto = autoDetect(rawHeaders, field.guesses);
+    const row = document.createElement('div');
+    row.className = 'mapping-row';
+
+    const label = document.createElement('div');
+    label.className = 'mapping-target';
+    label.textContent = field.label + (field.required ? ' *' : '');
+
+    const arrow = document.createElement('div');
+    arrow.className = 'mapping-arrow';
+    arrow.textContent = '←';
+
+    const sel = document.createElement('select');
+    sel.dataset.field = field.key;
+    sel.innerHTML = `<option value="">— not mapped —</option>`;
+    rawHeaders.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      if (h === auto) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', updateConvertBtn);
+    row.append(label, arrow, sel);
+    container.appendChild(row);
+  });
+
+  section.classList.remove('hidden');
+  updateConvertBtn();
+}
+
+// ════════════════════════════════════════════════════════════
+// BUILD OUTPUT ROWS
+// ════════════════════════════════════════════════════════════
+function buildOutputRows() {
+  const tpl = TEMPLATES[selectedTemplate];
+  const selects = getMappedSelects();
+  const colFor = key => { const s = selects.find(x => x.dataset.field === key); return s ? s.value : ''; };
+
+  const handleCol = colFor('handle');
+  const emailCol  = colFor('email');
+  const tiktokCol = colFor('tiktok');
+
+  let kept = 0, dropped = 0;
+  const mapped = [];
+
+  rawRows.forEach(row => {
+    const email = (row[emailCol] || '').trim();
+    if (!email || /^(n\/a|-|none|null|undefined)$/i.test(email)) { dropped++; return; }
+    kept++;
+    mapped.push({
+      handle: (row[handleCol] || '').trim(),
+      email,
+      tiktok: tiktokCol ? (row[tiktokCol] || '').trim() : ''
+    });
+  });
+
+  document.getElementById('statTotal').textContent   = rawRows.length;
+  document.getElementById('statKept').textContent    = kept;
+  document.getElementById('statDropped').textContent = dropped;
+  document.getElementById('statFixed').textContent   = manuallyRemoved;
+  document.getElementById('statsBar').classList.remove('hidden');
+
+  return tpl.build(mapped);
+}
+
+// ════════════════════════════════════════════════════════════
+// EDITABLE PREVIEW TABLE
+// ════════════════════════════════════════════════════════════
+function renderTable(highlightTerms) {
+  if (!outputRows || outputRows.length < 2) return;
+
+  const table = document.getElementById('previewTable');
+  table.innerHTML = '';
+
+  const thead = document.createElement('thead');
+  const hrow = document.createElement('tr');
+  const delTh = document.createElement('th');
+  delTh.textContent = '';
+  hrow.appendChild(delTh);
+  outputRows[0].forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const data = outputRows.slice(1);
+  const display = showingAll ? data : data.slice(0, 50);
+
+  const terms = (highlightTerms || []).map(t => t.toLowerCase().replace(/^@/, ''));
+
+  display.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.idx = i;
+
+    const rowText = r.join(' ').toLowerCase();
+    const isHighlighted = terms.length > 0 && terms.some(t => rowText.includes(t));
+    if (isHighlighted) tr.classList.add('highlighted');
+
+    const delTd = document.createElement('td');
+    delTd.className = 'delete-cell';
+    delTd.title = 'Remove this row';
+    delTd.textContent = '✕';
+    delTd.addEventListener('click', () => removeRowByElement(tr));
+    tr.appendChild(delTd);
+
+    r.forEach((cell, ci) => {
+      const td = document.createElement('td');
+      td.contentEditable = 'true';
+      td.textContent = cell;
+      td.dataset.col = ci;
+      td.addEventListener('blur', () => {
+        const dataIdx = parseInt(tr.dataset.idx) + 1;
+        outputRows[dataIdx][ci] = td.textContent.trim();
+      });
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+
+  const total = data.length;
+  document.getElementById('previewCount').textContent = total;
+  document.getElementById('previewWrap').classList.remove('hidden');
+
+  const btn = document.getElementById('showAllBtn');
+  if (total > 50) {
+    btn.textContent = showingAll ? 'Show fewer' : `Show all ${total}`;
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function removeRowByElement(tr) {
+  const idx = parseInt(tr.dataset.idx) + 1;
+  pushUndo();
+  outputRows.splice(idx, 1);
+  manuallyRemoved++;
+  document.getElementById('statFixed').textContent = manuallyRemoved;
+  document.getElementById('previewCount').textContent = outputRows.length - 1;
+  tr.remove();
+  const tbody = document.querySelector('#previewTable tbody');
+  [...tbody.rows].forEach((row, i) => { row.dataset.idx = i; });
+  updateRemovedBadge();
+}
+
+function updateRemovedBadge() {
+  const badge = document.getElementById('removedBadge');
+  if (manuallyRemoved > 0) {
+    badge.textContent = `${manuallyRemoved} removed`;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// UNDO
+// ════════════════════════════════════════════════════════════
+function pushUndo() {
+  undoStack.push(outputRows.map(r => [...r]));
+  if (undoStack.length > 30) undoStack.shift();
+}
+
+function doUndo() {
+  if (!undoStack.length) { logFix('Nothing to undo.'); return; }
+  outputRows = undoStack.pop();
+  manuallyRemoved = Math.max(0, manuallyRemoved - 1);
+  document.getElementById('statFixed').textContent = manuallyRemoved;
+  renderTable(currentHighlightTerms);
+  updateRemovedBadge();
+  logFix('↩ Undone.');
+}
+
+// ════════════════════════════════════════════════════════════
+// ERROR HIGHLIGHTER
+// ════════════════════════════════════════════════════════════
+let currentHighlightTerms = [];
+
+document.getElementById('errorPaste').addEventListener('input', () => {
+  const text = document.getElementById('errorPaste').value;
+  const terms = extractTermsFromError(text);
+  currentHighlightTerms = terms;
+  if (outputRows.length > 1) renderTable(terms);
+});
+
+function extractTermsFromError(text) {
+  const terms = new Set();
+  const handles = text.match(/@[\w.]+/g) || [];
+  handles.forEach(h => terms.add(h.replace('@','')));
+  const emails = text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || [];
+  emails.forEach(e => terms.add(e));
+  const rows = text.match(/(?:row\s*#?\s*|#\s*)(\d+)/gi) || [];
+  rows.forEach(m => {
+    const n = parseInt(m.replace(/\D/g,''));
+    if (!isNaN(n)) terms.add('__row__' + n);
+  });
+  return [...terms];
+}
+
+// ════════════════════════════════════════════════════════════
+// FIX COMMAND PARSER
+// ════════════════════════════════════════════════════════════
+function logFix(msg) {
+  const log = document.getElementById('fixLog');
+  log.classList.remove('hidden');
+  log.innerHTML += msg + '<br>';
+  log.scrollTop = log.scrollHeight;
+}
+
+function applyFixCommand(cmd) {
+  cmd = cmd.trim();
+  if (!cmd) return;
+  const lower = cmd.toLowerCase();
+
+  if (/^undo/.test(lower)) { doUndo(); return; }
+
+  if (/remove\s+all\s+highlighted/.test(lower) || /delete\s+all\s+highlighted/.test(lower)) {
+    const tbody = document.querySelector('#previewTable tbody');
+    if (!tbody) { logFix('No table to modify.'); return; }
+    const highlighted = [...tbody.querySelectorAll('tr.highlighted')];
+    if (!highlighted.length) { logFix('No highlighted rows found.'); return; }
+    pushUndo();
+    const idxs = highlighted.map(tr => parseInt(tr.dataset.idx) + 1).sort((a,b) => b - a);
+    idxs.forEach(idx => { outputRows.splice(idx, 1); manuallyRemoved++; });
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms);
+    updateRemovedBadge();
+    logFix(`✓ Removed ${idxs.length} highlighted row(s).`);
+    return;
+  }
+
+  const removeHandle = cmd.match(/^(?:remove|delete)\s+@?([\w.@+\-]+)$/i);
+  if (removeHandle) {
+    const term = removeHandle[1].toLowerCase();
+    pushUndo();
+    const before = outputRows.length;
+    outputRows = [outputRows[0], ...outputRows.slice(1).filter(r => !r.join(' ').toLowerCase().includes(term))];
+    const removed = before - outputRows.length;
+    if (removed === 0) { undoStack.pop(); logFix(`✗ No rows matched "${term}".`); return; }
+    manuallyRemoved += removed;
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms);
+    updateRemovedBadge();
+    logFix(`✓ Removed ${removed} row(s) matching "${term}".`);
+    return;
+  }
+
+  const removeRow = cmd.match(/^(?:remove|delete)\s+row\s*#?\s*(\d+)$/i);
+  if (removeRow) {
+    const n = parseInt(removeRow[1]);
+    if (n < 1 || n >= outputRows.length) { logFix(`✗ Row ${n} out of range (1–${outputRows.length-1}).`); return; }
+    pushUndo();
+    outputRows.splice(n, 1);
+    manuallyRemoved++;
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms);
+    updateRemovedBadge();
+    logFix(`✓ Removed row ${n}.`);
+    return;
+  }
+
+  const setEmail = cmd.match(/^set\s+email\s+for\s+@?([\w.@+\-]+)\s+to\s+([\w.@+\-]+)$/i);
+  if (setEmail) {
+    const handle = setEmail[1].toLowerCase();
+    const newEmail = setEmail[2];
+    let updated = 0;
+    const header = outputRows[0];
+    const emailIdx = header.findIndex(h => /email/i.test(h));
+    if (emailIdx === -1) { logFix('✗ No email column found.'); return; }
+    pushUndo();
+    outputRows.slice(1).forEach(r => {
+      if (r[0].toLowerCase().includes(handle)) { r[emailIdx] = newEmail; updated++; }
+    });
+    if (!updated) { undoStack.pop(); logFix(`✗ No rows matched handle "${handle}".`); return; }
+    renderTable(currentHighlightTerms);
+    logFix(`✓ Updated email for ${updated} row(s) matching "${handle}" → ${newEmail}`);
+    return;
+  }
+
+  const setHandle = cmd.match(/^set\s+(?:handle|name)\s+for\s+@?([\w.@+\-]+)\s+to\s+@?([\w.@+\-]+)$/i);
+  if (setHandle) {
+    const oldH = setHandle[1].toLowerCase();
+    const newH = setHandle[2];
+    let updated = 0;
+    pushUndo();
+    outputRows.slice(1).forEach(r => {
+      if (r[0].toLowerCase().includes(oldH)) { r[0] = newH; updated++; }
+    });
+    if (!updated) { undoStack.pop(); logFix(`✗ No rows matched handle "${oldH}".`); return; }
+    renderTable(currentHighlightTerms);
+    logFix(`✓ Updated handle for ${updated} row(s): "${oldH}" → ${newH}`);
+    return;
+  }
+
+  const keepHL = cmd.match(/^keep\s+(?:only\s+)?highlighted$/i);
+  if (keepHL) {
+    const tbody = document.querySelector('#previewTable tbody');
+    if (!tbody) { logFix('No table.'); return; }
+    const kept = [...tbody.querySelectorAll('tr.highlighted')].map(tr => parseInt(tr.dataset.idx) + 1);
+    if (!kept.length) { logFix('No highlighted rows.'); return; }
+    pushUndo();
+    const toKeep = new Set(kept);
+    outputRows = [outputRows[0], ...outputRows.slice(1).filter((_, i) => toKeep.has(i + 1))];
+    manuallyRemoved += (undoStack[undoStack.length-1].length - outputRows.length);
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms);
+    updateRemovedBadge();
+    logFix(`✓ Kept ${kept.length} highlighted row(s), removed the rest.`);
+    return;
+  }
+
+  logFix(`✗ Unknown command: "${cmd}". See examples above.`);
+}
+
+// ════════════════════════════════════════════════════════════
+// FIXER PANEL TOGGLE
+// ════════════════════════════════════════════════════════════
+let fixerOpen = true;
+function toggleFixer() {
+  fixerOpen = !fixerOpen;
+  document.getElementById('fixerBody').style.display = fixerOpen ? '' : 'none';
+  document.getElementById('fixerToggle').textContent = fixerOpen ? 'Hide' : 'Show';
+}
+
+// ════════════════════════════════════════════════════════════
+// FILE HANDLING
+// ════════════════════════════════════════════════════════════
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+function handleFile(file) {
+  if (!file || !file.name.toLowerCase().endsWith('.csv')) {
+    showError('Please upload a .csv file.'); return;
+  }
+  clearError();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parsed = parseCSV(e.target.result);
+    if (parsed.length < 2) { showError('CSV appears empty.'); return; }
+    rawHeaders = parsed[0];
+    rawRows = parsed.slice(1)
+      .filter(r => r.some(c => c.trim()))
+      .map(r => { const obj = {}; rawHeaders.forEach((h,i) => obj[h] = r[i]||''); return obj; });
+
+    document.getElementById('fileLoaded').textContent = `✓ ${file.name}  (${rawRows.length} rows)`;
+    document.getElementById('fileLoaded').classList.remove('hidden');
+    document.getElementById('previewWrap').classList.add('hidden');
+    document.getElementById('downloadBtn').classList.add('hidden');
+    document.getElementById('statsBar').classList.add('hidden');
+    document.getElementById('fixerPanel').classList.add('hidden');
+    outputRows = []; manuallyRemoved = 0; undoStack = [];
+    buildMappingUI();
+  };
+  reader.readAsText(file);
+}
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+// ════════════════════════════════════════════════════════════
+// TEMPLATE SELECTION
+// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.template-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedTemplate = card.dataset.template;
+    document.getElementById('previewWrap').classList.add('hidden');
+    document.getElementById('downloadBtn').classList.add('hidden');
+    document.getElementById('statsBar').classList.add('hidden');
+    document.getElementById('fixerPanel').classList.add('hidden');
+    outputRows = []; manuallyRemoved = 0; undoStack = [];
+    buildMappingUI();
+  });
+});
+
+// ════════════════════════════════════════════════════════════
+// CONVERT
+// ════════════════════════════════════════════════════════════
+document.getElementById('convertBtn').addEventListener('click', () => {
+  clearError();
+  outputRows = buildOutputRows();
+  if (outputRows.length <= 1) {
+    showError('No rows with valid emails found. Check your column mapping.');
+    return;
+  }
+  manuallyRemoved = 0; undoStack = []; currentHighlightTerms = [];
+  showingAll = false;
+  renderTable([]);
+  document.getElementById('downloadBtn').classList.remove('hidden');
+  document.getElementById('fixerPanel').classList.remove('hidden');
+  document.getElementById('fixLog').innerHTML = '';
+  document.getElementById('fixLog').classList.add('hidden');
+  document.getElementById('errorPaste').value = '';
+  document.getElementById('fixCmd').value = '';
+  updateRemovedBadge();
+});
+
+// ════════════════════════════════════════════════════════════
+// FIX APPLY / ENTER
+// ════════════════════════════════════════════════════════════
+document.getElementById('applyFixBtn').addEventListener('click', () => {
+  const cmd = document.getElementById('fixCmd').value;
+  applyFixCommand(cmd);
+  document.getElementById('fixCmd').value = '';
+});
+document.getElementById('fixCmd').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('applyFixBtn').click(); }
+});
+
+// ════════════════════════════════════════════════════════════
+// SHOW ALL TOGGLE
+// ════════════════════════════════════════════════════════════
+document.getElementById('showAllBtn').addEventListener('click', () => {
+  showingAll = !showingAll;
+  renderTable(currentHighlightTerms);
+});
+
+// ════════════════════════════════════════════════════════════
+// DOWNLOAD
+// ════════════════════════════════════════════════════════════
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!outputRows || outputRows.length < 2) { showError('Nothing to download.'); return; }
+  const csv  = rowsToCSV(outputRows);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.href = url;
+  a.download = `${selectedTemplate}_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
