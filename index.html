@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✨ Creator List Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pink:   #ff6b9d;
+    --coral:  #ff8c69;
+    --yellow: #ffd166;
+    --cyan:   #06d6a0;
+    --purple: #c77dff;
+    --blue:   #48cae4;
+    --bg:     #0d0d14;
+    --surface:#14141f;
+    --card:   #1a1a2e;
+    --border: #ffffff12;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: #e8e8f0;
+    min-height: 100vh;
+    padding: 32px 24px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* fun background blobs */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 600px 400px at 10% 10%, #c77dff18, transparent),
+      radial-gradient(ellipse 500px 400px at 90% 80%, #ff6b9d18, transparent),
+      radial-gradient(ellipse 400px 400px at 50% 50%, #06d6a008, transparent);
+  }
+
+  .app { width: 100%; max-width: 780px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  .header { text-align: center; margin-bottom: 36px; }
+  .header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #c77dff22, #ff6b9d22);
+    border: 1px solid #c77dff44;
+    border-radius: 99px; padding: 5px 14px;
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #c77dff; margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 38px; font-weight: 900; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, #c77dff 40%, #ff6b9d 70%, #ffd166 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 8px;
+  }
+  .subtitle { font-size: 14px; color: #666; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px; margin-bottom: 16px;
+    backdrop-filter: blur(12px);
+  }
+  .card-title {
+    font-size: 11px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── DROP ZONE ── */
+  .dropzone {
+    border: 2px dashed #ffffff18; border-radius: 16px;
+    padding: 48px 24px; text-align: center; cursor: pointer;
+    transition: all .25s; background: #ffffff05; position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: #c77dff66; background: #c77dff0a;
+    transform: scale(1.005);
+  }
+  .dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .dropzone-icon { font-size: 40px; margin-bottom: 12px; display: block; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .dropzone-label { font-size: 15px; color: #999; font-weight: 500; }
+  .dropzone-label span { color: var(--purple); font-weight: 700; cursor: pointer; }
+  .dropzone-sub { font-size: 12px; color: #444; margin-top: 6px; }
+  .file-loaded {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+    background: linear-gradient(135deg, #06d6a022, #48cae422);
+    border: 1px solid #06d6a044; border-radius: 99px;
+    padding: 6px 16px; font-size: 13px; font-weight: 600; color: var(--cyan);
+  }
+
+  /* ── TEMPLATES ── */
+  .templates { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+
+  .template-card {
+    border-radius: 16px; padding: 18px 16px; cursor: pointer;
+    border: 2px solid transparent; transition: all .2s; user-select: none;
+    position: relative; overflow: hidden;
+  }
+  .template-card::before {
+    content: ''; position: absolute; inset: 0; opacity: 0;
+    transition: opacity .2s; border-radius: 14px;
+  }
+  .template-card:hover::before { opacity: 1; }
+  .template-card:hover { transform: translateY(-2px); }
+
+  .template-card[data-template="sequencing"] {
+    background: linear-gradient(135deg, #c77dff15, #48cae415);
+    border-color: #c77dff30;
+  }
+  .template-card[data-template="sequencing"]::before {
+    background: linear-gradient(135deg, #c77dff08, #48cae408);
+  }
+  .template-card[data-template="sequencing"].selected {
+    border-color: #c77dff; background: linear-gradient(135deg, #c77dff22, #48cae422);
+    box-shadow: 0 0 24px #c77dff33;
+  }
+
+  .template-card[data-template="wix"] {
+    background: linear-gradient(135deg, #ff6b9d15, #ffd16615);
+    border-color: #ff6b9d30;
+  }
+  .template-card[data-template="wix"]::before {
+    background: linear-gradient(135deg, #ff6b9d08, #ffd16608);
+  }
+  .template-card[data-template="wix"].selected {
+    border-color: #ff6b9d; background: linear-gradient(135deg, #ff6b9d22, #ffd16622);
+    box-shadow: 0 0 24px #ff6b9d33;
+  }
+
+  .template-card[data-template="euka"] {
+    background: linear-gradient(135deg, #06d6a015, #48cae415);
+    border-color: #06d6a030;
+  }
+  .template-card[data-template="euka"]::before {
+    background: linear-gradient(135deg, #06d6a008, #48cae408);
+  }
+  .template-card[data-template="euka"].selected {
+    border-color: #06d6a0; background: linear-gradient(135deg, #06d6a022, #48cae422);
+    box-shadow: 0 0 24px #06d6a033;
+  }
+
+  .template-emoji { font-size: 24px; margin-bottom: 8px; display: block; }
+  .template-name { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .template-desc { font-size: 11px; color: #666; line-height: 1.5; }
+  .template-card[data-template="sequencing"].selected .template-desc { color: #c77dffaa; }
+  .template-card[data-template="wix"].selected .template-desc { color: #ff6b9daa; }
+  .template-card[data-template="euka"].selected .template-desc { color: #06d6a0aa; }
+
+  /* ── MAPPING ── */
+  .mapping-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .mapping-row:last-child { margin-bottom: 0; }
+  .mapping-target { font-size: 12px; font-weight: 600; color: #888; width: 210px; flex-shrink: 0; }
+  .mapping-arrow { color: #333; font-size: 14px; }
+  .mapping-row select {
+    flex: 1; background: #0d0d14; border: 1px solid #ffffff14;
+    border-radius: 10px; color: #e8e8f0; font-size: 12px; font-family: inherit;
+    padding: 8px 12px; outline: none; cursor: pointer; transition: border-color .15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .mapping-row select:focus { border-color: var(--purple); }
+
+  /* ── STATS ── */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    gap: 10px;
+  }
+  .stat-pill {
+    background: #ffffff06; border: 1px solid #ffffff10;
+    border-radius: 14px; padding: 14px 16px; text-align: center;
+    transition: transform .2s;
+  }
+  .stat-pill:hover { transform: scale(1.03); }
+  .stat-value { font-size: 26px; font-weight: 900; margin-bottom: 4px; }
+  .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: #555; }
+  .stat-pill.total .stat-value   { color: #e8e8f0; }
+  .stat-pill.kept  .stat-value   { color: var(--cyan); }
+  .stat-pill.bad   .stat-value   { color: var(--pink); }
+  .stat-pill.manual .stat-value  { color: var(--yellow); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 24px; border-radius: 14px; font-size: 14px; font-weight: 700;
+    font-family: inherit; cursor: pointer; border: none;
+    transition: all .2s; width: 100%; margin-top: 14px;
+    letter-spacing: .01em;
+  }
+  .btn:active { transform: scale(.97); }
+
+  .btn-convert {
+    background: linear-gradient(135deg, #c77dff, #7b2ff7);
+    color: #fff; box-shadow: 0 4px 24px #c77dff44;
+  }
+  .btn-convert:hover { box-shadow: 0 6px 32px #c77dff66; transform: translateY(-1px); }
+  .btn-convert:disabled {
+    background: #ffffff0a; color: #ffffff30; box-shadow: none;
+    cursor: not-allowed; transform: none;
+  }
+
+  .btn-download {
+    background: linear-gradient(135deg, #06d6a0, #048c68);
+    color: #fff; box-shadow: 0 4px 24px #06d6a044;
+  }
+  .btn-download:hover { box-shadow: 0 6px 32px #06d6a066; transform: translateY(-1px); }
+
+  .btn-clear {
+    background: transparent; color: #444;
+    border: 1px solid #ffffff0f; font-size: 13px; margin-top: 10px;
+  }
+  .btn-clear:hover { color: #888; border-color: #ffffff22; background: #ffffff05; }
+
+  .btn-sm {
+    padding: 7px 14px; font-size: 12px; border-radius: 9px;
+    width: auto; margin-top: 0; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: inherit; cursor: pointer; border: none;
+  }
+  .btn-sm-slate { background: #ffffff0f; color: #888; }
+  .btn-sm-slate:hover { background: #ffffff18; color: #bbb; }
+  .btn-sm-fire { background: linear-gradient(135deg, #ff6b9d, #ff8c69); color: #fff; }
+  .btn-sm-fire:hover { opacity: .9; }
+
+  /* ── PREVIEW TABLE ── */
+  .preview-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 0 14px 0; border-bottom: 1px solid #ffffff0a;
+    margin-bottom: 0; gap: 10px;
+  }
+  .preview-title { font-size: 13px; font-weight: 700; color: #ccc; display: flex; align-items: center; gap: 8px; }
+  .row-badge {
+    background: linear-gradient(135deg, #c77dff33, #48cae433);
+    border: 1px solid #c77dff44; border-radius: 99px;
+    font-size: 11px; font-weight: 800; color: #c77dff; padding: 2px 10px;
+  }
+  .removed-badge {
+    background: #ff6b9d22; border: 1px solid #ff6b9d44;
+    border-radius: 99px; font-size: 11px; font-weight: 700;
+    color: var(--pink); padding: 2px 10px; display: none;
+  }
+
+  .table-scroll { overflow-x: auto; max-height: 280px; overflow-y: auto; margin-top: 14px; border-radius: 12px; border: 1px solid #ffffff08; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    background: #0d0d14; color: #555; font-weight: 700;
+    padding: 9px 12px; text-align: left; white-space: nowrap;
+    position: sticky; top: 0; border-bottom: 1px solid #ffffff08; z-index: 1;
+    font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody td {
+    padding: 8px 12px; border-bottom: 1px solid #ffffff06;
+    color: #aaa; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  tbody td[contenteditable="true"] { outline: none; cursor: text; }
+  tbody td[contenteditable="true"]:focus {
+    background: #c77dff11; box-shadow: inset 0 0 0 1px #c77dff66;
+    color: #e8e8f0; white-space: normal; border-radius: 4px;
+  }
+  tbody tr:hover td { background: #ffffff04; }
+  tbody tr.highlighted td { background: #ffd16614 !important; }
+  tbody td.delete-cell {
+    width: 32px; text-align: center; cursor: pointer;
+    color: #ffffff15; font-size: 13px; padding: 8px 6px;
+    transition: color .15s;
+  }
+  tbody td.delete-cell:hover { color: var(--pink); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── ERROR FIXER ── */
+  .fixer-panel {
+    border: 1px solid #ffd16622; border-radius: 20px;
+    background: linear-gradient(135deg, #1a160800, #1a160800);
+    background-color: #17150a; overflow: hidden; margin-top: 16px;
+  }
+  .fixer-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px; background: linear-gradient(135deg, #ffd16610, #ff8c6908);
+    border-bottom: 1px solid #ffd16620;
+  }
+  .fixer-title { font-size: 13px; font-weight: 800; color: var(--yellow); display: flex; align-items: center; gap: 8px; }
+  .fixer-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .fixer-label { font-size: 10px; font-weight: 800; color: #7a6030; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
+
+  textarea.fixer-textarea {
+    width: 100%; background: #0d0b04; border: 1px solid #ffd16622;
+    border-radius: 12px; color: #ffd166cc; font-size: 12px; padding: 12px 14px;
+    resize: vertical; min-height: 72px; outline: none; font-family: monospace;
+    line-height: 1.6; transition: border-color .15s;
+  }
+  textarea.fixer-textarea:focus { border-color: #ffd16655; }
+  textarea.fixer-textarea::placeholder { color: #3a3020; }
+
+  .fix-row { display: flex; gap: 8px; }
+  input.fix-input {
+    flex: 1; background: #0d0b04; border: 1px solid #ffd16622;
+    border-radius: 12px; color: #e8e8f0; font-size: 13px; font-family: inherit;
+    padding: 10px 14px; outline: none; transition: border-color .15s;
+  }
+  input.fix-input:focus { border-color: #ffd16655; }
+  input.fix-input::placeholder { color: #3a3020; font-size: 12px; }
+
+  .fix-hints { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hint-chip {
+    background: #ffd16610; border: 1px solid #ffd16622;
+    border-radius: 6px; padding: 3px 8px;
+    font-size: 11px; color: #a07830; font-family: monospace;
+    cursor: pointer; transition: background .15s;
+  }
+  .hint-chip:hover { background: #ffd16620; color: #ffd166; }
+
+  .fix-log {
+    background: #0d0b04; border: 1px solid #ffd16615;
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 11px; color: #a07030; font-family: monospace;
+    max-height: 80px; overflow-y: auto; line-height: 1.8;
+  }
+
+  /* ── NOTICE ── */
+  .notice {
+    padding: 10px 16px; border-radius: 12px; font-size: 13px; margin-top: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .notice.error { background: #ff6b9d15; border: 1px solid #ff6b9d33; color: #ff6b9d; }
+
+  .hidden { display: none !important; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ffffff18; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #ffffff30; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-badge">✦ Pattern Creator Tools</div>
+    <h1>List Converter ✨</h1>
+    <p class="subtitle">Drop a raw CSV → pick your template → get a clean, upload-ready file</p>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Upload your raw CSV</div>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".csv" />
+      <span class="dropzone-icon">📂</span>
+      <div class="dropzone-label">Drop it here or <span>browse your files</span></div>
+      <div class="dropzone-sub">Only .csv files accepted</div>
+      <div class="file-loaded hidden" id="fileLoaded">✓ <span id="fileLoadedText"></span></div>
+    </div>
+  </div>
+
+  <!-- TEMPLATE PICKER -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--pink)"></span>Choose your template</div>
+    <div class="templates">
+      <div class="template-card" data-template="sequencing">
+        <span class="template-emoji">🎯</span>
+        <div class="template-name">Sequencing</div>
+        <div class="template-desc">Name · Email · TikTok URL</div>
+      </div>
+      <div class="template-card" data-template="wix">
+        <span class="template-emoji">🌐</span>
+        <div class="template-name">Wix</div>
+        <div class="template-desc">First name · Email</div>
+      </div>
+      <div class="template-card" data-template="euka">
+        <span class="template-emoji">🌿</span>
+        <div class="template-name">Euka</div>
+        <div class="template-desc">Handles only</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLUMN MAPPING -->
+  <div class="card hidden" id="mappingSection">
+    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Map your columns</div>
+    <div id="mappingRows"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar hidden" id="statsBar">
+    <div class="stat-pill total">
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Total rows</div>
+    </div>
+    <div class="stat-pill kept">
+      <div class="stat-value" id="statKept">—</div>
+      <div class="stat-label">✓ Kept</div>
+    </div>
+    <div class="stat-pill bad">
+      <div class="stat-value" id="statDropped">—</div>
+      <div class="stat-label">Bad/no email</div>
+    </div>
+    <div class="stat-pill manual">
+      <div class="stat-value" id="statFixed">—</div>
+      <div class="stat-label">Manually removed</div>
+    </div>
+  </div>
+
+  <div class="notice error hidden" id="errorBox">⚠️ <span id="errorText"></span></div>
+
+  <!-- CONVERT -->
+  <button class="btn btn-convert" id="convertBtn" disabled>✦ Clean &amp; Convert →</button>
+
+  <!-- PREVIEW TABLE -->
+  <div class="card hidden" id="previewWrap">
+    <div class="preview-header">
+      <div class="preview-title">
+        Preview
+        <span class="row-badge" id="previewCount">0</span>
+        <span class="removed-badge" id="removedBadge"></span>
+      </div>
+      <button class="btn-sm btn-sm-slate" id="showAllBtn" style="display:none">Show all</button>
+    </div>
+    <div class="table-scroll">
+      <table id="previewTable"></table>
+    </div>
+  </div>
+
+  <!-- DOWNLOAD -->
+  <button class="btn btn-download hidden" id="downloadBtn">⬇ Download CSV</button>
+
+  <!-- ERROR FIXER -->
+  <div class="fixer-panel hidden" id="fixerPanel">
+    <div class="fixer-header">
+      <div class="fixer-title">⚡ Platform Error Fixer</div>
+      <button class="btn-sm btn-sm-slate" id="fixerToggle" onclick="toggleFixer()">Hide</button>
+    </div>
+    <div class="fixer-body" id="fixerBody">
+      <div>
+        <div class="fixer-label">Paste the error from your platform</div>
+        <textarea class="fixer-textarea" id="errorPaste"
+          placeholder="e.g.  Creator @username already exists&#10;      Invalid email for row 5&#10;      Handle not found: @creator123"></textarea>
+        <div style="font-size:11px;color:#4a3a1a;margin-top:6px;">
+          Handles, emails &amp; row numbers get <strong style="color:#ffd166">highlighted</strong> in the table automatically.
+        </div>
+      </div>
+      <div>
+        <div class="fixer-label">Fix command</div>
+        <div class="fix-row">
+          <input class="fix-input" id="fixCmd" type="text" placeholder="Type a command and hit Enter…" />
+          <button class="btn-sm btn-sm-fire" id="applyFixBtn">Apply</button>
+        </div>
+        <div class="fix-hints" style="margin-top:10px;">
+          <span class="hint-chip" onclick="fillCmd('remove @handle')">remove @handle</span>
+          <span class="hint-chip" onclick="fillCmd('remove row 3')">remove row 3</span>
+          <span class="hint-chip" onclick="fillCmd('remove all highlighted')">remove all highlighted</span>
+          <span class="hint-chip" onclick="fillCmd('set email for @handle to x@gmail.com')">set email for…</span>
+          <span class="hint-chip" onclick="fillCmd('undo')">undo</span>
+        </div>
+      </div>
+      <div class="fix-log hidden" id="fixLog"></div>
+    </div>
+  </div>
+
+  <!-- CLEAR -->
+  <button class="btn btn-clear hidden" id="clearBtn">↺ Clear everything &amp; start over</button>
+
+</div><!-- /app -->
+
+<script>
+function fillCmd(text) {
+  document.getElementById('fixCmd').value = text;
+  document.getElementById('fixCmd').focus();
+}
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let rawHeaders = [];
+let rawRows    = [];
+let selectedTemplate = null;
+let outputRows = [];
+let manuallyRemoved = 0;
+let undoStack = [];
+let showingAll = false;
+
+// ════════════════════════════════════════════════════════════
+// TEMPLATES
+// ════════════════════════════════════════════════════════════
+const TEMPLATES = {
+  sequencing: {
+    fields: [
+      { key:'handle', label:'Creator handle / Name', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+      { key:'tiktok', label:'TikTok URL', required:false,
+        guesses:['tiktok link','tiktok url','tiktok','tiktok profile','profile url','url','profile link'] },
+    ],
+    build: mapped => {
+      const h = ['Name','Email','Instagram Link','YouTube Link','Tiktok Link',
+                 'Twitter Link','Facebook Link','Street Address 1','Street Address 2',
+                 'City','State','Zip','Country','Existing Discount Code?','Commission %'];
+      return [h, ...mapped.map(r => [r.handle, r.email, '','', r.tiktok||'','','','','','','','','','',''])];
+    }
+  },
+  wix: {
+    fields: [
+      { key:'handle', label:'Creator handle', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+    ],
+    build: mapped => [['First name','Last name','email'], ...mapped.map(r => [r.handle, '', r.email])]
+  },
+  euka: {
+    fields: [
+      { key:'handle', label:'Creator handle', required:true,
+        guesses:['handle','username','creator','name','tiktok handle','creator id','tiktok id','tiktok username','creator name'] },
+      { key:'email',  label:'Email (filter only — not in output)', required:true,
+        guesses:['email','e-mail','email address','creator email'] },
+    ],
+    build: mapped => [['handles'], ...mapped.map(r => [r.handle])]
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+// CSV PARSER
+// ════════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = [];
+  let cur = '', inQ = false;
+  const flush = () => { lines.push(cur); cur = ''; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { cur += '\x00'; }
+    else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      flush();
+    } else cur += c;
+  }
+  if (cur) flush();
+  return lines.map(l => l.split('\x00').map(v => v.trim().replace(/^"|"$/g,'').replace(/""/g,'"')));
+}
+
+function rowsToCSV(rows) {
+  return rows.map(r => r.map(cell => {
+    const s = String(cell ?? '');
+    return (s.includes(',') || s.includes('"') || s.includes('\n'))
+      ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(',')).join('\r\n');
+}
+
+// ════════════════════════════════════════════════════════════
+// COLUMN AUTO-DETECT
+// ════════════════════════════════════════════════════════════
+function autoDetect(headers, guesses) {
+  const norm = h => h.toLowerCase().replace(/[^a-z0-9]/g,' ').trim();
+  for (const g of guesses) {
+    const i = headers.findIndex(h => norm(h) === g);
+    if (i !== -1) return headers[i];
+  }
+  for (const g of guesses) {
+    const i = headers.findIndex(h => norm(h).includes(g) || g.includes(norm(h)));
+    if (i !== -1) return headers[i];
+  }
+  return '';
+}
+
+// ════════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════════
+function showError(msg) {
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('errorBox').classList.remove('hidden');
+}
+function clearError() { document.getElementById('errorBox').classList.add('hidden'); }
+
+function getMappedSelects() {
+  return [...document.querySelectorAll('#mappingRows select')];
+}
+
+function updateConvertBtn() {
+  if (!selectedTemplate || rawHeaders.length === 0) {
+    document.getElementById('convertBtn').disabled = true; return;
+  }
+  const tpl = TEMPLATES[selectedTemplate];
+  const selects = getMappedSelects();
+  const ok = tpl.fields.filter(f => f.required).every(f => {
+    const s = selects.find(x => x.dataset.field === f.key);
+    return s && s.value;
+  });
+  document.getElementById('convertBtn').disabled = !ok;
+}
+
+function buildMappingUI() {
+  if (!selectedTemplate || rawHeaders.length === 0) return;
+  const tpl = TEMPLATES[selectedTemplate];
+  const section = document.getElementById('mappingSection');
+  const container = document.getElementById('mappingRows');
+  container.innerHTML = '';
+
+  tpl.fields.forEach(field => {
+    const auto = autoDetect(rawHeaders, field.guesses);
+    const row = document.createElement('div');
+    row.className = 'mapping-row';
+
+    const label = document.createElement('div');
+    label.className = 'mapping-target';
+    label.textContent = field.label + (field.required ? ' *' : '');
+
+    const arrow = document.createElement('div');
+    arrow.className = 'mapping-arrow';
+    arrow.textContent = '←';
+
+    const sel = document.createElement('select');
+    sel.dataset.field = field.key;
+    sel.innerHTML = `<option value="">— not mapped —</option>`;
+    rawHeaders.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h; opt.textContent = h;
+      if (h === auto) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', updateConvertBtn);
+    row.append(label, arrow, sel);
+    container.appendChild(row);
+  });
+
+  section.classList.remove('hidden');
+  updateConvertBtn();
+}
+
+// ════════════════════════════════════════════════════════════
+// BUILD OUTPUT ROWS
+// ════════════════════════════════════════════════════════════
+function buildOutputRows() {
+  const tpl = TEMPLATES[selectedTemplate];
+  const selects = getMappedSelects();
+  const colFor = key => { const s = selects.find(x => x.dataset.field === key); return s ? s.value : ''; };
+
+  const handleCol = colFor('handle');
+  const emailCol  = colFor('email');
+  const tiktokCol = colFor('tiktok');
+
+  let kept = 0, dropped = 0;
+  const mapped = [];
+
+  rawRows.forEach(row => {
+    const email = (row[emailCol] || '').trim();
+    if (!email || /^(n\/a|-|none|null|undefined|na|n\.a\.|–|—)$/i.test(email)) { dropped++; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { dropped++; return; }
+    const domain = email.split('@')[1].toLowerCase();
+    const KNOWN = new Set([
+      'gmail.com','googlemail.com',
+      'yahoo.com','yahoo.co.uk','yahoo.co.in','yahoo.ca','yahoo.com.au','yahoo.fr',
+      'yahoo.de','yahoo.es','yahoo.it','yahoo.com.br','yahoo.com.mx','yahoo.co.jp',
+      'yahoo.com.ar','yahoo.com.ph','yahoo.gr','yahoo.com.sg','yahoo.co.id',
+      'ymail.com','rocketmail.com',
+      'hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.de','hotmail.es','hotmail.it',
+      'hotmail.com.br','hotmail.com.mx','hotmail.com.ar','hotmail.co.jp',
+      'outlook.com','outlook.co.uk','outlook.fr','outlook.de','outlook.es','outlook.it',
+      'outlook.com.br','outlook.com.mx','outlook.com.ar','outlook.in','outlook.jp',
+      'live.com','live.co.uk','live.fr','live.de','live.com.mx','live.com.ar','live.in',
+      'icloud.com','me.com','mac.com',
+      'msn.com','aol.com','aim.com',
+      'protonmail.com','protonmail.ch','proton.me','pm.me',
+      'tutanota.com','tutanota.de','tutamail.com','tuta.io',
+      'fastmail.com','fastmail.fm','fastmail.net','fastmail.org',
+      'hey.com','basecamp.com',
+      'mail.com','email.com','usa.com','myself.com','post.com',
+      'gmx.com','gmx.de','gmx.net','gmx.at','gmx.ch','gmx.fr',
+      'web.de','t-online.de','freenet.de','arcor.de',
+      'yandex.ru','yandex.com','yandex.ua','yandex.kz','ya.ru',
+      'qq.com','163.com','126.com','sina.com','sina.cn','sohu.com','yeah.net',
+      'naver.com','hanmail.net','daum.net','nate.com','kakao.com',
+      'comcast.net','verizon.net','att.net','sbcglobal.net','cox.net',
+      'charter.net','earthlink.net','bellsouth.net','roadrunner.com','twc.com',
+      'optonline.net','optimum.net','windstream.net','frontier.com','centurylink.net',
+      'rediffmail.com','indiatimes.com',
+      'zohomail.com','zoho.com',
+      'laposte.net','sfr.fr','orange.fr','free.fr','bbox.fr','wanadoo.fr',
+      'libero.it','tin.it','alice.it','virgilio.it','tiscali.it',
+      'terra.com.br','uol.com.br','bol.com.br','ig.com.br','globo.com',
+      'rambler.ru','mail.ru','inbox.ru','list.ru','bk.ru',
+      'wp.pl','onet.pl','interia.pl','o2.pl',
+      'btinternet.com','sky.com','talktalk.net','virginmedia.com','ntlworld.com',
+      'telenet.be','skynet.be','eircom.net','o2.ie',
+      'shaw.ca','bell.net','rogers.com','telus.net',
+      'bigpond.com','bigpond.net.au','optusnet.com.au','iinet.net.au',
+      'xtra.co.nz','paradise.net.nz','abv.bg','mail.bg',
+    ]);
+    if (!KNOWN.has(domain)) { dropped++; return; }
+    let tiktok = tiktokCol ? (row[tiktokCol] || '').trim() : '';
+    if (tiktokCol) {
+      const validTiktok = /(?:https?:\/\/)?(?:www\.)?tiktok\.com\/@[\w.]{1,}/i.test(tiktok);
+      if (!tiktok || !validTiktok) { dropped++; return; }
+      const match = tiktok.match(/tiktok\.com\/@([\w.]+)/i);
+      if (match) tiktok = 'https://www.tiktok.com/@' + match[1];
+    }
+    kept++;
+    mapped.push({ handle: (row[handleCol] || '').trim(), email, tiktok });
+  });
+
+  document.getElementById('statTotal').textContent   = rawRows.length;
+  document.getElementById('statKept').textContent    = kept;
+  document.getElementById('statDropped').textContent = dropped;
+  document.getElementById('statFixed').textContent   = manuallyRemoved;
+  document.getElementById('statsBar').classList.remove('hidden');
+
+  return tpl.build(mapped);
+}
+
+// ════════════════════════════════════════════════════════════
+// EDITABLE PREVIEW TABLE
+// ════════════════════════════════════════════════════════════
+function renderTable(highlightTerms) {
+  if (!outputRows || outputRows.length < 2) return;
+
+  const table = document.getElementById('previewTable');
+  table.innerHTML = '';
+
+  const thead = document.createElement('thead');
+  const hrow = document.createElement('tr');
+  const delTh = document.createElement('th'); delTh.textContent = ''; hrow.appendChild(delTh);
+  outputRows[0].forEach(h => {
+    const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const data = outputRows.slice(1);
+  const display = showingAll ? data : data.slice(0, 50);
+  const terms = (highlightTerms || []).map(t => t.toLowerCase().replace(/^@/, ''));
+
+  display.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.idx = i;
+    const rowText = r.join(' ').toLowerCase();
+    if (terms.length > 0 && terms.some(t => rowText.includes(t))) tr.classList.add('highlighted');
+
+    const delTd = document.createElement('td');
+    delTd.className = 'delete-cell'; delTd.title = 'Remove row'; delTd.textContent = '✕';
+    delTd.addEventListener('click', () => removeRowByElement(tr));
+    tr.appendChild(delTd);
+
+    r.forEach((cell, ci) => {
+      const td = document.createElement('td');
+      td.contentEditable = 'true'; td.textContent = cell; td.dataset.col = ci;
+      td.addEventListener('blur', () => {
+        outputRows[parseInt(tr.dataset.idx) + 1][ci] = td.textContent.trim();
+      });
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const total = data.length;
+  document.getElementById('previewCount').textContent = total;
+  document.getElementById('previewWrap').classList.remove('hidden');
+
+  const btn = document.getElementById('showAllBtn');
+  if (total > 50) {
+    btn.textContent = showingAll ? 'Show fewer' : `Show all ${total}`;
+    btn.style.display = '';
+  } else { btn.style.display = 'none'; }
+}
+
+function removeRowByElement(tr) {
+  pushUndo();
+  outputRows.splice(parseInt(tr.dataset.idx) + 1, 1);
+  manuallyRemoved++;
+  document.getElementById('statFixed').textContent = manuallyRemoved;
+  document.getElementById('previewCount').textContent = outputRows.length - 1;
+  tr.remove();
+  [...document.querySelector('#previewTable tbody').rows].forEach((r,i) => r.dataset.idx = i);
+  updateRemovedBadge();
+}
+
+function updateRemovedBadge() {
+  const b = document.getElementById('removedBadge');
+  if (manuallyRemoved > 0) { b.textContent = `${manuallyRemoved} removed`; b.style.display = ''; }
+  else b.style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════
+// UNDO
+// ════════════════════════════════════════════════════════════
+function pushUndo() {
+  undoStack.push(outputRows.map(r => [...r]));
+  if (undoStack.length > 30) undoStack.shift();
+}
+function doUndo() {
+  if (!undoStack.length) { logFix('Nothing to undo.'); return; }
+  outputRows = undoStack.pop();
+  manuallyRemoved = Math.max(0, manuallyRemoved - 1);
+  document.getElementById('statFixed').textContent = manuallyRemoved;
+  renderTable(currentHighlightTerms);
+  updateRemovedBadge();
+  logFix('↩ Undone.');
+}
+
+// ════════════════════════════════════════════════════════════
+// ERROR HIGHLIGHTER
+// ════════════════════════════════════════════════════════════
+let currentHighlightTerms = [];
+
+document.getElementById('errorPaste').addEventListener('input', () => {
+  const terms = extractTermsFromError(document.getElementById('errorPaste').value);
+  currentHighlightTerms = terms;
+  if (outputRows.length > 1) renderTable(terms);
+});
+
+function extractTermsFromError(text) {
+  const terms = new Set();
+  (text.match(/@[\w.]+/g)||[]).forEach(h => terms.add(h.replace('@','')));
+  (text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g)||[]).forEach(e => terms.add(e));
+  (text.match(/(?:row\s*#?\s*|#\s*)(\d+)/gi)||[]).forEach(m => {
+    const n = parseInt(m.replace(/\D/g,'')); if (!isNaN(n)) terms.add('__row__'+n);
+  });
+  return [...terms];
+}
+
+// ════════════════════════════════════════════════════════════
+// FIX COMMAND PARSER
+// ════════════════════════════════════════════════════════════
+function logFix(msg) {
+  const log = document.getElementById('fixLog');
+  log.classList.remove('hidden');
+  log.innerHTML += msg + '<br>';
+  log.scrollTop = log.scrollHeight;
+}
+
+function applyFixCommand(cmd) {
+  cmd = cmd.trim(); if (!cmd) return;
+  const lower = cmd.toLowerCase();
+
+  if (/^undo/.test(lower)) { doUndo(); return; }
+
+  if (/remove\s+all\s+highlighted|delete\s+all\s+highlighted/.test(lower)) {
+    const tbody = document.querySelector('#previewTable tbody');
+    if (!tbody) { logFix('No table.'); return; }
+    const hl = [...tbody.querySelectorAll('tr.highlighted')];
+    if (!hl.length) { logFix('No highlighted rows.'); return; }
+    pushUndo();
+    hl.map(tr => parseInt(tr.dataset.idx)+1).sort((a,b)=>b-a).forEach(idx => { outputRows.splice(idx,1); manuallyRemoved++; });
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms); updateRemovedBadge();
+    logFix(`✓ Removed ${hl.length} highlighted row(s).`); return;
+  }
+
+  const rh = cmd.match(/^(?:remove|delete)\s+@?([\w.@+\-]+)$/i);
+  if (rh) {
+    const term = rh[1].toLowerCase(); pushUndo();
+    const before = outputRows.length;
+    outputRows = [outputRows[0], ...outputRows.slice(1).filter(r => !r.join(' ').toLowerCase().includes(term))];
+    const removed = before - outputRows.length;
+    if (!removed) { undoStack.pop(); logFix(`✗ No rows matched "${term}".`); return; }
+    manuallyRemoved += removed;
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms); updateRemovedBadge();
+    logFix(`✓ Removed ${removed} row(s) matching "${term}".`); return;
+  }
+
+  const rr = cmd.match(/^(?:remove|delete)\s+row\s*#?\s*(\d+)$/i);
+  if (rr) {
+    const n = parseInt(rr[1]);
+    if (n < 1 || n >= outputRows.length) { logFix(`✗ Row ${n} out of range.`); return; }
+    pushUndo(); outputRows.splice(n,1); manuallyRemoved++;
+    document.getElementById('statFixed').textContent = manuallyRemoved;
+    renderTable(currentHighlightTerms); updateRemovedBadge();
+    logFix(`✓ Removed row ${n}.`); return;
+  }
+
+  const se = cmd.match(/^set\s+email\s+for\s+@?([\w.@+\-]+)\s+to\s+([\w.@+\-]+)$/i);
+  if (se) {
+    const handle = se[1].toLowerCase(), newEmail = se[2];
+    const emailIdx = outputRows[0].findIndex(h => /email/i.test(h));
+    if (emailIdx === -1) { logFix('✗ No email column.'); return; }
+    pushUndo(); let updated = 0;
+    outputRows.slice(1).forEach(r => { if (r[0].toLowerCase().includes(handle)) { r[emailIdx]=newEmail; updated++; } });
+    if (!updated) { undoStack.pop(); logFix(`✗ No rows matched "${handle}".`); return; }
+    renderTable(currentHighlightTerms);
+    logFix(`✓ Updated email → ${newEmail} for ${updated} row(s).`); return;
+  }
+
+  const sh = cmd.match(/^set\s+(?:handle|name)\s+for\s+@?([\w.@+\-]+)\s+to\s+@?([\w.@+\-]+)$/i);
+  if (sh) {
+    const oldH=sh[1].toLowerCase(), newH=sh[2]; pushUndo(); let updated=0;
+    outputRows.slice(1).forEach(r => { if(r[0].toLowerCase().includes(oldH)){r[0]=newH;updated++;} });
+    if(!updated){undoStack.pop();logFix(`✗ No rows matched "${oldH}".`);return;}
+    renderTable(currentHighlightTerms); logFix(`✓ Renamed "${oldH}" → ${newH} (${updated} rows).`); return;
+  }
+
+  const khl = cmd.match(/^keep\s+(?:only\s+)?highlighted$/i);
+  if (khl) {
+    const tbody = document.querySelector('#previewTable tbody');
+    const kept = [...(tbody||{querySelectorAll:()=>[]}).querySelectorAll('tr.highlighted')].map(tr=>parseInt(tr.dataset.idx)+1);
+    if(!kept.length){logFix('No highlighted rows.');return;}
+    pushUndo(); const toKeep=new Set(kept);
+    outputRows=[outputRows[0],...outputRows.slice(1).filter((_,i)=>toKeep.has(i+1))];
+    manuallyRemoved+=(undoStack[undoStack.length-1].length-outputRows.length);
+    document.getElementById('statFixed').textContent=manuallyRemoved;
+    renderTable(currentHighlightTerms); updateRemovedBadge();
+    logFix(`✓ Kept ${kept.length} highlighted row(s).`); return;
+  }
+
+  logFix(`✗ Unknown command. Try a chip above ↑`);
+}
+
+// ════════════════════════════════════════════════════════════
+// FIXER PANEL TOGGLE
+// ════════════════════════════════════════════════════════════
+let fixerOpen = true;
+function toggleFixer() {
+  fixerOpen = !fixerOpen;
+  document.getElementById('fixerBody').style.display = fixerOpen ? '' : 'none';
+  document.getElementById('fixerToggle').textContent = fixerOpen ? 'Hide' : 'Show';
+}
+
+// ════════════════════════════════════════════════════════════
+// FILE HANDLING
+// ════════════════════════════════════════════════════════════
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+function handleFile(file) {
+  if (!file || !file.name.toLowerCase().endsWith('.csv')) { showError('Please upload a .csv file.'); return; }
+  clearError();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parsed = parseCSV(e.target.result);
+    if (parsed.length < 2) { showError('CSV appears empty.'); return; }
+    rawHeaders = parsed[0];
+    rawRows = parsed.slice(1).filter(r=>r.some(c=>c.trim()))
+      .map(r => { const obj={}; rawHeaders.forEach((h,i)=>obj[h]=r[i]||''); return obj; });
+
+    document.getElementById('fileLoadedText').textContent = `${file.name} — ${rawRows.length} rows`;
+    document.getElementById('fileLoaded').classList.remove('hidden');
+    ['previewWrap','downloadBtn','clearBtn','statsBar','fixerPanel'].forEach(id =>
+      document.getElementById(id).classList.add('hidden'));
+    outputRows=[]; manuallyRemoved=0; undoStack=[];
+    buildMappingUI();
+  };
+  reader.readAsText(file);
+}
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+// ════════════════════════════════════════════════════════════
+// TEMPLATE SELECTION
+// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.template-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.template-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedTemplate = card.dataset.template;
+    ['previewWrap','downloadBtn','clearBtn','statsBar','fixerPanel'].forEach(id =>
+      document.getElementById(id).classList.add('hidden'));
+    outputRows=[]; manuallyRemoved=0; undoStack=[];
+    buildMappingUI();
+  });
+});
+
+// ════════════════════════════════════════════════════════════
+// CONVERT
+// ════════════════════════════════════════════════════════════
+document.getElementById('convertBtn').addEventListener('click', () => {
+  clearError();
+  outputRows = buildOutputRows();
+  if (outputRows.length <= 1) { showError('No rows with valid data found. Check your column mapping.'); return; }
+  manuallyRemoved=0; undoStack=[]; currentHighlightTerms=[]; showingAll=false;
+  renderTable([]);
+  ['downloadBtn','clearBtn','fixerPanel'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+  document.getElementById('fixLog').innerHTML='';
+  document.getElementById('fixLog').classList.add('hidden');
+  document.getElementById('errorPaste').value='';
+  document.getElementById('fixCmd').value='';
+  updateRemovedBadge();
+});
+
+// ════════════════════════════════════════════════════════════
+// FIX APPLY
+// ════════════════════════════════════════════════════════════
+document.getElementById('applyFixBtn').addEventListener('click', () => {
+  applyFixCommand(document.getElementById('fixCmd').value);
+  document.getElementById('fixCmd').value='';
+});
+document.getElementById('fixCmd').addEventListener('keydown', e => {
+  if (e.key==='Enter') { e.preventDefault(); document.getElementById('applyFixBtn').click(); }
+});
+
+// ════════════════════════════════════════════════════════════
+// SHOW ALL
+// ════════════════════════════════════════════════════════════
+document.getElementById('showAllBtn').addEventListener('click', () => {
+  showingAll = !showingAll; renderTable(currentHighlightTerms);
+});
+
+// ════════════════════════════════════════════════════════════
+// CLEAR ALL
+// ════════════════════════════════════════════════════════════
+function clearAll() {
+  rawHeaders=[]; rawRows=[]; selectedTemplate=null;
+  outputRows=[]; manuallyRemoved=0; undoStack=[]; showingAll=false; currentHighlightTerms=[];
+  document.getElementById('fileInput').value='';
+  ['fileLoaded','previewWrap','downloadBtn','clearBtn','statsBar','errorBox','mappingSection','fixerPanel']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.querySelectorAll('.template-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('errorPaste').value='';
+  document.getElementById('fixCmd').value='';
+  document.getElementById('fixLog').innerHTML='';
+  document.getElementById('fixLog').classList.add('hidden');
+  document.getElementById('mappingRows').innerHTML='';
+  clearError();
+  document.getElementById('convertBtn').disabled=true;
+}
+document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+// ════════════════════════════════════════════════════════════
+// DOWNLOAD
+// ════════════════════════════════════════════════════════════
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!outputRows || outputRows.length < 2) { showError('Nothing to download.'); return; }
+  const csv = rowsToCSV(outputRows);
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`${selectedTemplate}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
